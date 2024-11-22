@@ -2,11 +2,11 @@ const std = @import("std");
 const utils = @import("utils.zig");
 const BinaryTreeNode = @import("binary_tree_node.zig").BinaryTreeNode;
 
-pub fn TreeMap(Key: type, Value: type) type {
+pub fn TreeMap(Key: type, Value: type, comptime compare: fn (Key, Key) i2) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
-        const Node = BinaryTreeNode(Key, Value);
+        const Node = BinaryTreeNode(Key, Value, compare);
 
         allocator: std.mem.Allocator,
         root: ?*Node,

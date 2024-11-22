@@ -1,7 +1,7 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 
-pub fn BinaryTreeNode(Key: type, Value: type) type {
+pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
@@ -65,19 +65,23 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
             var currentNode: ?*Self = self;
             var went_left = true;
 
-            while (currentNode) |node|
-                if (key == node.key) {
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => {
                     node.value = value;
                     return;
-                } else if (key < node.key) {
+                },
+                -1 => {
                     went_left = true;
                     lastNode = node;
                     currentNode = node.left;
-                } else {
+                },
+                1 => {
                     went_left = false;
                     lastNode = node;
                     currentNode = node.right;
-                };
+                },
+                else => unreachable,
+            };
 
             const parentNode = lastNode.?;
 
@@ -87,11 +91,10 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
                 value,
             );
 
-            if (went_left) {
-                parentNode.left = newNode;
-            } else {
+            if (went_left)
+                parentNode.left = newNode
+            else
                 parentNode.right = newNode;
-            }
         }
 
         pub fn insertSubtree(
@@ -117,28 +120,35 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
             var currentNode: ?*Self = self;
             var went_left = true;
 
-            while (currentNode) |node|
-                if (leaf.key == node.key) {
+            while (currentNode) |node| switch (compare(leaf.key, node.key)) {
+                0 => {
                     node.value = leaf.value;
+
+                    if (Key == []const u8) allocator.free(leaf.key);
+                    if (Value == []const u8) allocator.free(leaf.value);
                     allocator.destroy(leaf);
+
                     return;
-                } else if (leaf.key < node.key) {
+                },
+                -1 => {
                     went_left = true;
                     lastNode = node;
                     currentNode = node.left;
-                } else {
+                },
+                1 => {
                     went_left = false;
                     lastNode = node;
                     currentNode = node.right;
-                };
+                },
+                else => unreachable,
+            };
 
             const parentNode = lastNode.?;
 
-            if (went_left) {
-                parentNode.left = leaf;
-            } else {
+            if (went_left)
+                parentNode.left = leaf
+            else
                 parentNode.right = leaf;
-            }
         }
 
         pub fn delete(
@@ -150,14 +160,13 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
             var currentNode: ?*Self = self;
             var went_left = true;
 
-            while (currentNode) |node|
-                if (key == node.key) {
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => {
                     if (lastNode) |parentNode| {
-                        if (went_left) {
-                            parentNode.left = null;
-                        } else {
+                        if (went_left)
+                            parentNode.left = null
+                        else
                             parentNode.right = null;
-                        }
 
                         if (node.left) |leftNode| parentNode.insertSubtree(allocator, leftNode);
                         if (node.right) |rightNode| parentNode.insertSubtree(allocator, rightNode);
@@ -168,15 +177,19 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
                     }
 
                     return node;
-                } else if (key < self.key) {
+                },
+                -1 => {
                     went_left = true;
                     lastNode = node;
                     currentNode = node.left;
-                } else {
+                },
+                1 => {
                     went_left = false;
                     lastNode = node;
                     currentNode = node.right;
-                };
+                },
+                else => unreachable,
+            };
 
             return null;
         }
@@ -184,14 +197,12 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
         pub fn get(self: *const Self, key: Key) ?Value {
             var currentNode: ?*const Self = self;
 
-            while (currentNode) |node|
-                if (key == node.key) {
-                    return node.value;
-                } else if (key < self.key) {
-                    currentNode = node.left;
-                } else {
-                    currentNode = node.right;
-                };
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => return node.value,
+                -1 => currentNode = node.left,
+                1 => currentNode = node.right,
+                else => unreachable,
+            };
 
             return null;
         }
@@ -199,14 +210,12 @@ pub fn BinaryTreeNode(Key: type, Value: type) type {
         pub fn contains(self: *const Self, key: Key) bool {
             var currentNode: ?*const Self = self;
 
-            while (currentNode) |node|
-                if (key == node.key) {
-                    return true;
-                } else if (key < self.key) {
-                    currentNode = node.left;
-                } else {
-                    currentNode = node.right;
-                };
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => return true,
+                -1 => currentNode = node.left,
+                1 => currentNode = node.right,
+                else => unreachable,
+            };
 
             return false;
         }

@@ -1,6 +1,10 @@
 const std = @import("std");
 const TreeMap = @import("tree_map.zig").TreeMap;
 
+fn compare(n1: i32, n2: i32) i2 {
+    return if (n1 == n2) 0 else if (n1 < n2) -1 else 1;
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer _ = gpa.deinit();
@@ -9,7 +13,7 @@ pub fn main() !void {
 
     const allocator = la.allocator();
 
-    var tree = TreeMap(i32, []const u8).init(allocator);
+    var tree = TreeMap(i32, []const u8, compare).init(allocator);
     defer tree.deinit();
 
     try tree.put(0, "que se yo");
