@@ -62,7 +62,7 @@ pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
             destroyNode(allocator, self);
         }
 
-        pub fn insert(
+        pub fn insertKeyValue(
             self: *Node,
             allocator: std.mem.Allocator,
             key: Key,
@@ -100,17 +100,9 @@ pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
                 parentNode.right = newNode;
         }
 
-        pub fn insertSubtree(
-            self: *Node,
-            allocator: std.mem.Allocator,
-            node: *Node,
-        ) void {
-            if (node.left) |leftNode| self.insertSubtree(allocator, leftNode);
-            if (node.right) |rightNode| self.insertSubtree(allocator, rightNode);
-
-            self.insertLeaf(allocator, node);
-        }
-
+        //
+        // TODO: Revisar esto
+        // vvvvvvvvvvvvvvvvvv
         fn insertLeaf(
             self: *Node,
             allocator: std.mem.Allocator,
@@ -150,7 +142,18 @@ pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
                 parentNode.right = leaf;
         }
 
-        pub fn delete(
+        fn insertSubtree(
+            self: *Node,
+            allocator: std.mem.Allocator,
+            node: *Node,
+        ) void {
+            if (node.left) |leftNode| self.insertSubtree(allocator, leftNode);
+            if (node.right) |rightNode| self.insertSubtree(allocator, rightNode);
+
+            self.insertLeaf(allocator, node);
+        }
+
+        fn delete(
             self: *Node,
             allocator: std.mem.Allocator,
             key: Key,
@@ -192,6 +195,9 @@ pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
 
             return null;
         }
+        // ^^^^^^^^^^^^^^^^^^
+        // TODO: Revisar esto
+        //
 
         pub fn get(self: *const Node, key: Key) ?Value {
             var currentNode: ?*const Node = self;

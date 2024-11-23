@@ -13,26 +13,22 @@ pub fn main() !void {
 
     const allocator = la.allocator();
 
-    var tree = ImmutableTreeMap(i32, []const u8, compare).init(allocator);
-    defer tree.deinit();
+    var map = ImmutableTreeMap(i32, []const u8, compare).init(allocator);
+    defer map.deinit();
 
-    try tree.put(0, "que se yo");
-    try tree.put(-1, "la pregunta es:");
-    try tree.put(2, "sí señor!");
-    try tree.put(-2, "a la izquierda");
-    try tree.put(10, "a la derecha");
-    try tree.put(9, "anteúlltimo");
+    try map.put(0, "a");
+    try map.put(-50, "b");
+    try map.put(20, "c");
+    try map.put(-10, "d");
+    try map.put(10, "e");
+    try map.put(-100, "f");
+    try map.put(-1000, "g");
+    try map.put(100, "h");
+    try map.put(15, "i");
+    try map.put(-30, "j");
 
-    std.debug.print("\n --- TREE ---\n\n", .{});
-    tree.print();
-    std.debug.print("\n --- TREE ---\n\n", .{});
-
-    std.debug.print("{d:>5}: \"{s}\"\n", .{ -1, tree.get(-1) orelse "null" });
-    std.debug.print("{d:>5}: \"{s}\"\n", .{ 3, tree.get(3) orelse "null" });
-    std.debug.print("\n", .{});
-
-    const graph_viz = try tree.toGraphViz();
+    const graph_viz = try map.toGraphViz();
     defer allocator.free(graph_viz);
 
-    std.debug.print("{s}\n\n", .{graph_viz});
+    std.debug.print("\n{s}\n", .{graph_viz});
 }

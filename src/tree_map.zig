@@ -26,7 +26,7 @@ pub fn ImmutableTreeMap(Key: type, Value: type, comptime compare: fn (Key, Key) 
 
         pub fn put(self: *Map, key: Key, value: Value) !void {
             if (self.root) |root| {
-                try root.insert(self.allocator, key, value);
+                try root.insertKeyValue(self.allocator, key, value);
             } else {
                 self.root = try Node.createNode(self.allocator, key, value);
             }
