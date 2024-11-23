@@ -1,23 +1,23 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 
-pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2) type {
+pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
-        const Self = @This();
+        const Node = @This();
 
         key: Key,
         value: Value,
-        left: ?*Self,
-        right: ?*Self,
+        left: ?*Node,
+        right: ?*Node,
 
-        pub fn newLeaf(
+        pub fn createNode(
             allocator: std.mem.Allocator,
             key: Key,
             value: Value,
-        ) error{OutOfMemory}!*Self {
-            const newNode = try allocator.create(Self);
+        ) error{OutOfMemory}!*Node {
+            const newNode = try allocator.create(Node);
             errdefer allocator.destroy(newNode);
 
             const key_copy = if (Key == []const u8) blk: {
@@ -36,7 +36,7 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
             } else value;
             errdefer if (Value == []const u8) allocator.free(value_copy);
 
-            newNode.* = Self{
+            newNode.* = Node{
                 .key = key_copy,
                 .value = value_copy,
                 .left = null,
@@ -46,23 +46,30 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
             return newNode;
         }
 
-        pub fn deinit(self: *const Self, allocator: std.mem.Allocator) void {
-            if (self.left) |leftNode| leftNode.deinit(allocator);
-            if (self.right) |rightNode| rightNode.deinit(allocator);
-
+        pub fn destroyNode(
+            allocator: std.mem.Allocator,
+            self: *const Node,
+        ) void {
             if (Key == []const u8) allocator.free(self.key);
             if (Value == []const u8) allocator.free(self.value);
             allocator.destroy(self);
         }
 
+        pub fn deinit(self: *const Node, allocator: std.mem.Allocator) void {
+            if (self.left) |leftNode| leftNode.deinit(allocator);
+            if (self.right) |rightNode| rightNode.deinit(allocator);
+
+            destroyNode(allocator, self);
+        }
+
         pub fn insert(
-            self: *Self,
+            self: *Node,
             allocator: std.mem.Allocator,
             key: Key,
             value: Value,
         ) error{OutOfMemory}!void {
-            var lastNode: ?*Self = null;
-            var currentNode: ?*Self = self;
+            var lastNode: ?*Node = null;
+            var currentNode: ?*Node = self;
             var went_left = true;
 
             while (currentNode) |node| switch (compare(key, node.key)) {
@@ -85,11 +92,7 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
 
             const parentNode = lastNode.?;
 
-            const newNode = try Self.newLeaf(
-                allocator,
-                key,
-                value,
-            );
+            const newNode = try createNode(allocator, key, value);
 
             if (went_left)
                 parentNode.left = newNode
@@ -98,9 +101,9 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
         }
 
         pub fn insertSubtree(
-            self: *Self,
+            self: *Node,
             allocator: std.mem.Allocator,
-            node: *Self,
+            node: *Node,
         ) void {
             if (node.left) |leftNode| self.insertSubtree(allocator, leftNode);
             if (node.right) |rightNode| self.insertSubtree(allocator, rightNode);
@@ -109,25 +112,21 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
         }
 
         fn insertLeaf(
-            self: *Self,
+            self: *Node,
             allocator: std.mem.Allocator,
-            leaf: *Self,
+            leaf: *Node,
         ) void {
             leaf.left = null;
             leaf.right = null;
 
-            var lastNode: ?*Self = null;
-            var currentNode: ?*Self = self;
+            var lastNode: ?*Node = null;
+            var currentNode: ?*Node = self;
             var went_left = true;
 
             while (currentNode) |node| switch (compare(leaf.key, node.key)) {
                 0 => {
                     node.value = leaf.value;
-
-                    if (Key == []const u8) allocator.free(leaf.key);
-                    if (Value == []const u8) allocator.free(leaf.value);
-                    allocator.destroy(leaf);
-
+                    destroyNode(allocator, leaf);
                     return;
                 },
                 -1 => {
@@ -152,12 +151,12 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
         }
 
         pub fn delete(
-            self: *Self,
+            self: *Node,
             allocator: std.mem.Allocator,
             key: Key,
-        ) ?*Self {
-            var lastNode: ?*Self = null;
-            var currentNode: ?*Self = self;
+        ) ?*Node {
+            var lastNode: ?*Node = null;
+            var currentNode: ?*Node = self;
             var went_left = true;
 
             while (currentNode) |node| switch (compare(key, node.key)) {
@@ -194,8 +193,8 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
             return null;
         }
 
-        pub fn get(self: *const Self, key: Key) ?Value {
-            var currentNode: ?*const Self = self;
+        pub fn get(self: *const Node, key: Key) ?Value {
+            var currentNode: ?*const Node = self;
 
             while (currentNode) |node| switch (compare(key, node.key)) {
                 0 => return node.value,
@@ -207,8 +206,8 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
             return null;
         }
 
-        pub fn contains(self: *const Self, key: Key) bool {
-            var currentNode: ?*const Self = self;
+        pub fn contains(self: *const Node, key: Key) bool {
+            var currentNode: ?*const Node = self;
 
             while (currentNode) |node| switch (compare(key, node.key)) {
                 0 => return true,
@@ -220,7 +219,45 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
             return false;
         }
 
-        pub fn print(self: Self) void {
+        pub fn toGraphViz(
+            self: *const Node,
+            writer: std.ArrayList(u8).Writer,
+        ) error{OutOfMemory}!void {
+            try writer.print(
+                \\
+                \\    "{[self_key]}" [ label="{[self_key]}: {[self_value]s}"] ;
+                \\
+            , .{ .self_key = self.key, .self_value = self.value });
+
+            if (self.left) |leftNode|
+                try writer.print(
+                    \\    "{[self_key]}" -> {[left_key]} ;
+                    \\
+                , .{ .self_key = self.key, .left_key = leftNode.key })
+            else
+                try writer.print(
+                    \\    "{[self_key]}_left_nil" [ shape="plain", label="nil" ] ;
+                    \\    "{[self_key]}" -> "{[self_key]}_left_nil" ;
+                    \\
+                , .{ .self_key = self.key });
+
+            if (self.right) |rightNode|
+                try writer.print(
+                    \\    "{[self_key]}" -> "{[right_key]}" ;
+                    \\
+                , .{ .self_key = self.key, .right_key = rightNode.key })
+            else
+                try writer.print(
+                    \\    "{[self_key]}_right_nil"  [ shape="plain", label="nil" ] ;
+                    \\    "{[self_key]}" -> "{[self_key]}_right_nil" ;
+                    \\
+                , .{ .self_key = self.key });
+
+            if (self.left) |leftNode| try leftNode.toGraphViz(writer);
+            if (self.right) |rightNode| try rightNode.toGraphViz(writer);
+        }
+
+        pub fn print(self: Node) void {
             if (self.left) |leftNode| leftNode.print();
 
             std.debug.print(
@@ -230,12 +267,37 @@ pub fn BinaryTreeNode(Key: type, Value: type, comptime compare: fn (Key, Key) i2
                 ),
                 .{ self.key, self.value },
             );
-            // std.debug.print(
-            //     "lk: {d}, rk: {d}\n",
-            //     .{ if (self.left) |n| n.key else -1000, if (self.right) |n| n.key else -1000 },
-            // );
 
             if (self.right) |rightNode| rightNode.print();
         }
+
+        inline fn nodeLabelFmtStr() []const u8 {
+            return std.fmt.comptimePrint(
+                "{s}: {s}",
+                .{ utils.getFmtStr(Key), utils.getFmtStr(Value) },
+            );
+        }
     };
+}
+
+const testing = std.testing;
+
+fn intCanonicalOrder(n1: i32, n2: i32) i2 {
+    return if (n1 == n2) 0 else if (n1 < n2) -1 else 1;
+}
+
+const IntStrNode = BinaryTreeNode(i32, []const u8, intCanonicalOrder);
+
+test "IntStrNode createNode and destroyNode" {
+    const allocator = testing.allocator;
+
+    const node = try IntStrNode.createNode(allocator, 1, "a");
+    defer IntStrNode.destroyNode(allocator, node);
+
+    try testing.expectEqual(1, node.key);
+    try testing.expectEqualSlices(u8, "a", node.value);
+
+    var fa = std.testing.FailingAllocator.init(allocator, .{ .fail_index = 0 });
+
+    try testing.expectError(error.OutOfMemory, IntStrNode.createNode(fa.allocator(), 1, "a"));
 }

@@ -1,5 +1,5 @@
 const std = @import("std");
-const TreeMap = @import("tree_map.zig").TreeMap;
+const ImmutableTreeMap = @import("tree_map.zig").ImmutableTreeMap;
 
 fn compare(n1: i32, n2: i32) i2 {
     return if (n1 == n2) 0 else if (n1 < n2) -1 else 1;
@@ -13,7 +13,7 @@ pub fn main() !void {
 
     const allocator = la.allocator();
 
-    var tree = TreeMap(i32, []const u8, compare).init(allocator);
+    var tree = ImmutableTreeMap(i32, []const u8, compare).init(allocator);
     defer tree.deinit();
 
     try tree.put(0, "que se yo");
@@ -31,13 +31,8 @@ pub fn main() !void {
     std.debug.print("{d:>5}: \"{s}\"\n", .{ 3, tree.get(3) orelse "null" });
     std.debug.print("\n", .{});
 
-    _ = tree.remove(-1);
+    const graph_viz = try tree.toGraphViz();
+    defer allocator.free(graph_viz);
 
-    std.debug.print("\n --- TREE ---\n\n", .{});
-    tree.print();
-    std.debug.print("\n --- TREE ---\n\n", .{});
-}
-
-test "simple test" {
-    try std.testing.expectEqual(1, 1);
+    std.debug.print("{s}\n\n", .{graph_viz});
 }

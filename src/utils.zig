@@ -6,7 +6,7 @@ pub fn getFmtStr(T: type) []const u8 {
         .Pointer => if (T != []const u8)
             @compileError("Type " ++ @typeName(T) ++ " not supported")
         else
-            "\"{s}\"",
+            "{s}",
         else => @compileError("Type " ++ @typeName(T) ++ " not supported"),
     };
 }
