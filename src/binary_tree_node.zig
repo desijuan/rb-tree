@@ -1,7 +1,11 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 
-pub fn BinaryTreeNode(Key: type, Value: type, compare: fn (Key, Key) i2) type {
+pub fn BinaryTreeNode(
+    comptime Key: type,
+    comptime Value: type,
+    comptime compare: fn (Key, Key) i2,
+) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
