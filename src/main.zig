@@ -1,4 +1,5 @@
 const std = @import("std");
+const BinaryTreeNode = @import("binary_tree_node.zig").BinaryTreeNode;
 const ImmutableTreeMap = @import("tree_map.zig").ImmutableTreeMap;
 
 fn compare(n1: i32, n2: i32) i2 {
@@ -13,7 +14,7 @@ pub fn main() !void {
 
     const allocator = la.allocator();
 
-    var map = ImmutableTreeMap(i32, []const u8, compare).init(allocator);
+    var map = ImmutableTreeMap(i32, []const u8, compare, BinaryTreeNode).init(allocator);
     defer map.deinit();
 
     try map.put(0, "a");
@@ -31,4 +32,9 @@ pub fn main() !void {
     defer allocator.free(graph_viz);
 
     std.debug.print("\n{s}\n", .{graph_viz});
+}
+
+test {
+    _ = @import("binary_tree_node.zig");
+    _ = @import("tree_map.zig");
 }

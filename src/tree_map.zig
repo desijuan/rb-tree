@@ -1,17 +1,20 @@
 const std = @import("std");
 const utils = @import("utils.zig");
-const BinaryTreeNode = @import("binary_tree_node.zig").BinaryTreeNode;
 
-pub fn ImmutableTreeMap(Key: type, Value: type, comptime compare: fn (Key, Key) i2) type {
+pub fn ImmutableTreeMap(
+    comptime Key: type,
+    comptime Value: type,
+    comptime compare: fn (Key, Key) i2,
+    comptime NodeType: fn (type, type, comptime fn (anytype, anytype) i2) type,
+) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
+    const Node = NodeType(Key, Value, compare);
 
     return struct {
-        const Node = BinaryTreeNode(Key, Value, compare);
+        const Map = @This();
 
         allocator: std.mem.Allocator,
         root: ?*Node,
-
-        const Map = @This();
 
         pub fn init(allocator: std.mem.Allocator) Map {
             return Map{
