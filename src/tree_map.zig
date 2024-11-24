@@ -28,19 +28,36 @@ pub fn ImmutableTreeMap(
         }
 
         pub fn put(self: *Map, key: Key, value: Value) !void {
-            if (self.root) |root| {
-                try root.insertKeyValue(self.allocator, key, value);
-            } else {
+            if (self.root) |root|
+                try root.insertKeyValue(self.allocator, key, value)
+            else
                 self.root = try Node.createNode(self.allocator, key, value);
-            }
         }
 
         pub fn get(self: Map, key: Key) ?Value {
-            return if (self.root) |root| root.get(key) else null;
+            var currentNode: ?*const Node = self.root;
+
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => return node.value,
+                -1 => currentNode = node.left,
+                1 => currentNode = node.right,
+                else => unreachable,
+            };
+
+            return null;
         }
 
         pub fn contains(self: Map, key: Key) bool {
-            return if (self.root) |root| root.contains(key) else false;
+            var currentNode: ?*const Node = self.root;
+
+            while (currentNode) |node| switch (compare(key, node.key)) {
+                0 => return true,
+                -1 => currentNode = node.left,
+                1 => currentNode = node.right,
+                else => unreachable,
+            };
+
+            return false;
         }
 
         pub fn isEmpty(self: Map) bool {

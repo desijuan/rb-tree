@@ -203,32 +203,6 @@ pub fn BinaryTreeNode(
         // TODO: Revisar esto
         //
 
-        pub fn get(self: *const Node, key: Key) ?Value {
-            var currentNode: ?*const Node = self;
-
-            while (currentNode) |node| switch (compare(key, node.key)) {
-                0 => return node.value,
-                -1 => currentNode = node.left,
-                1 => currentNode = node.right,
-                else => unreachable,
-            };
-
-            return null;
-        }
-
-        pub fn contains(self: *const Node, key: Key) bool {
-            var currentNode: ?*const Node = self;
-
-            while (currentNode) |node| switch (compare(key, node.key)) {
-                0 => return true,
-                -1 => currentNode = node.left,
-                1 => currentNode = node.right,
-                else => unreachable,
-            };
-
-            return false;
-        }
-
         pub fn toGraphViz(
             self: *const Node,
             writer: std.ArrayList(u8).Writer,
