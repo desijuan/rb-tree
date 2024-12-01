@@ -1,37 +1,39 @@
 const std = @import("std");
 const utils = @import("utils.zig");
+const RBTreeNode = @import("rb_tree_node.zig").RBTreeNode;
 
-pub fn ImmutableTreeMap(
+pub fn TreeMap(
     comptime Key: type,
     comptime Value: type,
     comptime compare: fn (Key, Key) i2,
-    comptime NodeType: fn (type, type, comptime fn (anytype, anytype) i2) type,
 ) type {
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
-    const Node = NodeType(Key, Value, compare);
+    const Node = RBTreeNode(Key, Value, compare);
 
     return struct {
+        var allocator: std.mem.Allocator = undefined;
+
         const Map = @This();
 
-        allocator: std.mem.Allocator,
-        root: ?*Node,
+        root: ?*const Node,
 
-        pub fn init(allocator: std.mem.Allocator) Map {
+        pub fn init(alloc: std.mem.Allocator) Map {
+            allocator = alloc;
+            Node.allocator = alloc;
+
             return Map{
-                .allocator = allocator,
                 .root = null,
             };
         }
 
-        pub fn deinit(self: Map) void {
-            if (self.root) |root| root.deinit(self.allocator);
-        }
+        pub fn put(self: Map, key: Key, value: Value) Map {
+            const root: *const Node = self.root orelse return Map{
+                .root = Node.createNode(key, value, .Black, null, null),
+            };
 
-        pub fn put(self: *Map, key: Key, value: Value) !void {
-            if (self.root) |root|
-                try root.insertKeyValue(self.allocator, key, value)
-            else
-                self.root = try Node.createNode(self.allocator, key, value);
+            const newRoot: *const Node = root.insert(key, value).setColor(.Black);
+
+            return if (root == newRoot) self else Map{ .root = newRoot };
         }
 
         pub fn get(self: Map, key: Key) ?Value {
@@ -65,14 +67,14 @@ pub fn ImmutableTreeMap(
         }
 
         pub fn toGraphViz(self: Map) error{OutOfMemory}![]const u8 {
-            var array_list = try std.ArrayList(u8).initCapacity(self.allocator, 4 * 1024);
+            var array_list = try std.ArrayList(u8).initCapacity(allocator, 4 * 1024);
             errdefer array_list.deinit();
 
             const writer = array_list.writer();
 
             try writer.writeAll(
                 \\digraph g {
-                \\    node [shape=box]
+                \\node [shape=box, penwidth=2]
                 \\
             );
 
@@ -84,10 +86,6 @@ pub fn ImmutableTreeMap(
             );
 
             return array_list.toOwnedSlice();
-        }
-
-        pub fn print(self: Map) void {
-            if (self.root) |root| root.print();
         }
     };
 }
