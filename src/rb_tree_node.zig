@@ -79,10 +79,10 @@ pub fn RBTreeNode(
             return newNode;
         }
 
-        pub fn destroy(self: *Node) void {
+        pub fn destroy(self: *const Node) void {
             if (Key == []const u8) arena_allocator.free(self.key);
             if (Value == []const u8) arena_allocator.free(self.value);
-            mem_pool.destroy(self);
+            mem_pool.destroy(@constCast(self));
         }
 
         fn invertColor(self: *const Node) *const Node {
@@ -106,15 +106,43 @@ pub fn RBTreeNode(
         }
 
         fn rotateLeft(self: *const Node) *const Node {
-            return self.right.?.setLeftAndColor(self.setRightAndColor(self.right.?.left, .Red), self.color);
+            const newNode: *const Node = self.right.?.setLeftAndColor(
+                self.setRightAndColor(self.right.?.left, .Red),
+                self.color,
+            );
+
+            self.right.?.destroy();
+            self.destroy();
+
+            return newNode;
         }
 
         fn rotateRight(self: *const Node) *const Node {
-            return self.left.?.setRightAndColor(self.setLeftAndColor(self.left.?.right, .Red), self.color);
+            const newNode: *const Node = self.left.?.setRightAndColor(
+                self.setLeftAndColor(self.left.?.right, .Red),
+                self.color,
+            );
+
+            self.left.?.destroy();
+            self.destroy();
+
+            return newNode;
         }
 
         fn flipColor(self: *const Node) *const Node {
-            return createNode(self.key, self.value, self.color.flip(), self.left.?.invertColor(), self.right.?.invertColor());
+            const newNode: *const Node = createNode(
+                self.key,
+                self.value,
+                self.color.flip(),
+                self.left.?.invertColor(),
+                self.right.?.invertColor(),
+            );
+
+            self.left.?.destroy();
+            self.right.?.destroy();
+            self.destroy();
+
+            return newNode;
         }
 
         fn rotateLeftIfNeeded(self: *const Node) *const Node {
@@ -134,7 +162,11 @@ pub fn RBTreeNode(
         }
 
         pub fn setColor(self: *const Node, color: Color) *const Node {
-            return if (color == self.color) self else createNode(self.key, self.value, color, self.left, self.right);
+            return if (color == self.color) self else blk: {
+                const newNode: *const Node = createNode(self.key, self.value, color, self.left, self.right);
+                self.destroy();
+                break :blk newNode;
+            };
         }
 
         pub fn insert(self: *const Node, key: Key, value: Value) *const Node {
