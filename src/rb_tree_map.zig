@@ -11,19 +11,29 @@ pub fn TreeMap(
     const Node = RBTreeNode(Key, Value, compare);
 
     return struct {
-        var allocator: std.mem.Allocator = undefined;
+        var arena: std.heap.ArenaAllocator = undefined;
 
         const Map = @This();
 
         root: ?*const Node,
 
-        pub fn init(alloc: std.mem.Allocator) Map {
-            allocator = alloc;
-            Node.allocator = alloc;
+        pub fn init(allocator: std.mem.Allocator) Map {
+            arena = std.heap.ArenaAllocator.init(allocator);
+
+            Node.arena_allocator = arena.allocator();
+            Node.mem_pool = std.heap.MemoryPool(Node).init(allocator);
 
             return Map{
                 .root = null,
             };
+        }
+
+        pub fn deinit() void {
+            std.debug.print("Total memory allocated by the arena: {} bytes\n", .{arena.queryCapacity()});
+            std.debug.print("Total memory allocated by the memory pool: {} bytes\n", .{Node.mem_pool.arena.queryCapacity()});
+
+            Node.mem_pool.deinit();
+            arena.deinit();
         }
 
         pub fn put(self: Map, key: Key, value: Value) Map {
@@ -66,7 +76,7 @@ pub fn TreeMap(
             return self.root == null;
         }
 
-        pub fn toGraphViz(self: Map) error{OutOfMemory}![]const u8 {
+        pub fn toGraphViz(self: Map, allocator: std.mem.Allocator) error{OutOfMemory}![]const u8 {
             var array_list = try std.ArrayList(u8).initCapacity(allocator, 4 * 1024);
             errdefer array_list.deinit();
 

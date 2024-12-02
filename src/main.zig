@@ -8,16 +8,16 @@ fn compare(n1: i32, n2: i32) i2 {
     return if (n1 == n2) 0 else if (n1 < n2) -1 else 1;
 }
 
+const Map = TreeMap(i32, []const u8, compare);
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer _ = gpa.deinit();
 
-    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
-    defer arena.deinit();
+    const allocator = gpa.allocator();
 
-    const allocator = arena.allocator();
-
-    var map = TreeMap(i32, []const u8, compare).init(allocator);
+    var map = Map.init(allocator);
+    defer Map.deinit();
 
     const graph_viz = try map
         .put(0, "a")
@@ -32,7 +32,7 @@ pub fn main() !void {
         .put(-30, "j")
         .put(45, "k")
         .put(-150, "l")
-        .toGraphViz();
+        .toGraphViz(allocator);
 
     defer allocator.free(graph_viz);
 
@@ -60,7 +60,4 @@ pub fn main() !void {
         .Exited => |exitCode| if (exitCode != 0) return error.ChildProcessError,
         else => return error.ChildProcessError,
     }
-
-    const total_memory = arena.queryCapacity();
-    std.debug.print("Total memory allocated by the arena: {} bytes\n", .{total_memory});
 }

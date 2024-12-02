@@ -28,7 +28,8 @@ pub fn RBTreeNode(
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
-        pub var allocator: std.mem.Allocator = undefined;
+        pub var arena_allocator: std.mem.Allocator = undefined;
+        pub var mem_pool: std.heap.MemoryPool(Node) = undefined;
 
         const Node = @This();
 
@@ -53,16 +54,16 @@ pub fn RBTreeNode(
             left: ?*const Node,
             right: ?*const Node,
         ) *const Node {
-            const newNode: *Node = allocator.create(Node) catch @panic("OOM");
+            const newNode: *Node = mem_pool.create() catch @panic("OOM");
 
             const key_copy: Key = if (Key == []const u8) blk: {
-                const key_copy = allocator.alloc(u8, key.len) catch @panic("OOM");
+                const key_copy = arena_allocator.alloc(u8, key.len) catch @panic("OOM");
                 @memcpy(key_copy, key);
                 break :blk key_copy;
             } else key;
 
             const value_copy: Value = if (Value == []const u8) blk: {
-                const value_copy = allocator.alloc(u8, value.len) catch @panic("OOM");
+                const value_copy = arena_allocator.alloc(u8, value.len) catch @panic("OOM");
                 @memcpy(value_copy, value);
                 break :blk value_copy;
             } else value;
@@ -78,18 +79,14 @@ pub fn RBTreeNode(
             return newNode;
         }
 
-        pub fn destroy(self: *const Node) void {
-            if (Key == []const u8) allocator.free(self.key);
-            if (Value == []const u8) allocator.free(self.value);
-            allocator.destroy(self);
+        pub fn destroy(self: *Node) void {
+            if (Key == []const u8) arena_allocator.free(self.key);
+            if (Value == []const u8) arena_allocator.free(self.value);
+            mem_pool.destroy(self);
         }
 
         fn invertColor(self: *const Node) *const Node {
             return createNode(self.key, self.value, self.color.flip(), self.left, self.right);
-        }
-
-        fn colorFlip(self: *const Node) *const Node {
-            return createNode(self.key, self.value, self.color.flip(), self.left.?.invertColor(), self.right.?.invertColor());
         }
 
         fn setLeft(self: *const Node, node: *const Node) *const Node {
@@ -116,6 +113,10 @@ pub fn RBTreeNode(
             return self.left.?.setRightAndColor(self.setLeftAndColor(self.left.?.right, .Red), self.color);
         }
 
+        fn flipColor(self: *const Node) *const Node {
+            return createNode(self.key, self.value, self.color.flip(), self.left.?.invertColor(), self.right.?.invertColor());
+        }
+
         fn rotateLeftIfNeeded(self: *const Node) *const Node {
             return if (isRed(self.right)) self.rotateLeft() else self;
         }
@@ -125,7 +126,7 @@ pub fn RBTreeNode(
         }
 
         fn flipColorIfNeeded(self: *const Node) *const Node {
-            return if (isRed(self.left) and isRed(self.right)) self.colorFlip() else self;
+            return if (isRed(self.left) and isRed(self.right)) self.flipColor() else self;
         }
 
         fn setValue(self: *const Node, value: Value) *const Node {
