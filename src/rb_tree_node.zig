@@ -46,14 +46,6 @@ pub fn RBTreeNode(
             return if (node) |self| (self.color == .Red) else false;
         }
 
-        pub fn equals(self: *const Node, other: *const Node) bool {
-            return (self.key == other.key and
-                // self.value == other.value and
-                self.color == other.color and
-                self.left == other.left and
-                self.right == other.right);
-        }
-
         pub fn createNode(
             key: Key,
             value: Value,
@@ -219,28 +211,4 @@ pub fn RBTreeNode(
             if (self.right) |rightNode| try rightNode.toGraphViz(writer);
         }
     };
-}
-
-const testing = std.testing;
-
-fn intCanonicalOrder(n1: i32, n2: i32) i2 {
-    return if (n1 == n2) 0 else if (n1 < n2) -1 else 1;
-}
-
-const IntStrNode = RBTreeNode(i32, []const u8, intCanonicalOrder);
-
-test "IntStrNode.equals" {
-    IntStrNode.allocator = testing.allocator;
-
-    const n1 = IntStrNode.createNode(1, "a", .Red, null, null);
-    defer n1.destroy();
-
-    const n2 = IntStrNode.createNode(1, "a", .Red, null, null);
-    defer n2.destroy();
-
-    const n3 = IntStrNode.createNode(1, "a", .Black, null, null);
-    defer n3.destroy();
-
-    try testing.expectEqual(true, n1.equals(n2));
-    try testing.expectEqual(false, n1.equals(n3));
 }

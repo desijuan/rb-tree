@@ -64,7 +64,3 @@ pub fn main() !void {
     const total_memory = arena.queryCapacity();
     std.debug.print("Total memory allocated by the arena: {} bytes\n", .{total_memory});
 }
-
-test {
-    _ = @import("rb_tree_node.zig");
-}
