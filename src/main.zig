@@ -14,9 +14,11 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer _ = gpa.deinit();
 
-    const allocator = gpa.allocator();
+    const gpa_allocator = gpa.allocator();
 
-    var map = Map.init(allocator);
+    var la = std.heap.loggingAllocator(gpa_allocator);
+
+    var map = Map.init(la.allocator());
     defer Map.deinit();
 
     const graph_viz = try map
@@ -32,9 +34,9 @@ pub fn main() !void {
         .put(-30, "j")
         .put(45, "k")
         .put(-150, "l")
-        .toGraphViz(allocator);
+        .toGraphViz(gpa_allocator);
 
-    defer allocator.free(graph_viz);
+    defer gpa_allocator.free(graph_viz);
 
     const output_file = try std.fs.cwd().createFile(gv_file, .{});
     defer output_file.close();
@@ -46,14 +48,14 @@ pub fn main() !void {
     try file_bw.flush();
 
     const runResult = try std.process.Child.run(.{
-        .allocator = allocator,
+        .allocator = gpa_allocator,
         .argv = &[_][]const u8{
             "dot", "-Tpng", "-o", png_file, gv_file,
         },
     });
     defer {
-        allocator.free(runResult.stdout);
-        allocator.free(runResult.stderr);
+        gpa_allocator.free(runResult.stdout);
+        gpa_allocator.free(runResult.stderr);
     }
 
     switch (runResult.term) {

@@ -29,9 +29,6 @@ pub fn TreeMap(
         }
 
         pub fn deinit() void {
-            std.debug.print("Total memory allocated by the arena: {} bytes\n", .{arena.queryCapacity()});
-            std.debug.print("Total memory allocated by the memory pool: {} bytes\n", .{Node.mem_pool.arena.queryCapacity()});
-
             Node.mem_pool.deinit();
             arena.deinit();
         }
