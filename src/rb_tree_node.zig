@@ -28,10 +28,15 @@ pub fn RBTreeNode(
     for ([_]type{ Key, Value }) |T| utils.errorIfNotNumberOrString(T);
 
     return struct {
-        pub var arena_allocator: std.mem.Allocator = undefined;
-        pub var mem_pool: std.heap.MemoryPool(Node) = undefined;
-
         const Node = @This();
+
+        pub const mem = if ((Key == []const u8) or (Value == []const u8)) struct {
+            pub var arena: std.heap.ArenaAllocator = undefined;
+            pub var arena_allocator: std.mem.Allocator = undefined;
+            pub var pool: std.heap.MemoryPool(Node) = undefined;
+        } else struct {
+            pub var pool: std.heap.MemoryPool(Node) = undefined;
+        };
 
         key: Key,
         value: Value,
@@ -54,16 +59,16 @@ pub fn RBTreeNode(
             left: ?*const Node,
             right: ?*const Node,
         ) *const Node {
-            const newNode: *Node = mem_pool.create() catch @panic("OOM");
+            const newNode: *Node = mem.pool.create() catch @panic("OOM");
 
             const key_copy: Key = if (Key == []const u8) blk: {
-                const key_copy = arena_allocator.alloc(u8, key.len) catch @panic("OOM");
+                const key_copy = mem.arena_allocator.alloc(u8, key.len) catch @panic("OOM");
                 @memcpy(key_copy, key);
                 break :blk key_copy;
             } else key;
 
             const value_copy: Value = if (Value == []const u8) blk: {
-                const value_copy = arena_allocator.alloc(u8, value.len) catch @panic("OOM");
+                const value_copy = mem.arena_allocator.alloc(u8, value.len) catch @panic("OOM");
                 @memcpy(value_copy, value);
                 break :blk value_copy;
             } else value;
@@ -80,9 +85,9 @@ pub fn RBTreeNode(
         }
 
         pub fn destroy(self: *const Node) void {
-            if (Key == []const u8) arena_allocator.free(self.key);
-            if (Value == []const u8) arena_allocator.free(self.value);
-            mem_pool.destroy(@constCast(self));
+            if (Key == []const u8) mem.arena_allocator.free(self.key);
+            if (Value == []const u8) mem.arena_allocator.free(self.value);
+            mem.pool.destroy(@constCast(self));
         }
 
         fn invertColor(self: *const Node) *const Node {

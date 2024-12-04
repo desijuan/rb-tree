@@ -11,17 +11,17 @@ pub fn TreeMap(
     const Node = RBTreeNode(Key, Value, compare);
 
     return struct {
-        var arena: std.heap.ArenaAllocator = undefined;
-
         const Map = @This();
 
         root: ?*const Node,
 
         pub fn init(allocator: std.mem.Allocator) Map {
-            arena = std.heap.ArenaAllocator.init(allocator);
+            Node.mem.pool = std.heap.MemoryPool(Node).init(allocator);
 
-            Node.arena_allocator = arena.allocator();
-            Node.mem_pool = std.heap.MemoryPool(Node).init(allocator);
+            if ((Key == []const u8) or (Value == []const u8)) {
+                Node.mem.arena = std.heap.ArenaAllocator.init(allocator);
+                Node.mem.arena_allocator = Node.mem.arena.allocator();
+            }
 
             return Map{
                 .root = null,
@@ -29,8 +29,10 @@ pub fn TreeMap(
         }
 
         pub fn deinit() void {
-            Node.mem_pool.deinit();
-            arena.deinit();
+            if ((Key == []const u8) or (Value == []const u8)) {
+                Node.mem.arena.deinit();
+            }
+            Node.mem.pool.deinit();
         }
 
         pub fn put(self: Map, key: Key, value: Value) Map {
