@@ -61,13 +61,13 @@ pub fn RBTreeNode(
         ) *const Node {
             const newNode: *Node = mem.pool.create() catch @panic("OOM");
 
-            const key_copy: Key = if (Key == []const u8) blk: {
+            const key_copy: Key = if (comptime Key == []const u8) blk: {
                 const key_copy = mem.arena_allocator.alloc(u8, key.len) catch @panic("OOM");
                 @memcpy(key_copy, key);
                 break :blk key_copy;
             } else key;
 
-            const value_copy: Value = if (Value == []const u8) blk: {
+            const value_copy: Value = if (comptime Value == []const u8) blk: {
                 const value_copy = mem.arena_allocator.alloc(u8, value.len) catch @panic("OOM");
                 @memcpy(value_copy, value);
                 break :blk value_copy;

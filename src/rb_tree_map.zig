@@ -18,7 +18,7 @@ pub fn TreeMap(
         pub fn init(allocator: std.mem.Allocator) Map {
             Node.mem.pool = std.heap.MemoryPool(Node).init(allocator);
 
-            if ((Key == []const u8) or (Value == []const u8)) {
+            if (comptime utils.containsDeclaration(Node.mem, "arena")) {
                 Node.mem.arena = std.heap.ArenaAllocator.init(allocator);
                 Node.mem.arena_allocator = Node.mem.arena.allocator();
             }
@@ -29,7 +29,7 @@ pub fn TreeMap(
         }
 
         pub fn deinit() void {
-            if ((Key == []const u8) or (Value == []const u8)) {
+            if (comptime utils.containsDeclaration(Node.mem, "arena")) {
                 Node.mem.arena.deinit();
             }
             Node.mem.pool.deinit();

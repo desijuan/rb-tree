@@ -18,3 +18,26 @@ pub fn errorIfNotNumberOrString(T: type) void {
         else => @compileError("Type " ++ @typeName(T) ++ " not supported"),
     }
 }
+
+pub fn containsDeclaration(T: type, declName: [:0]const u8) bool {
+    const typeInfo: std.builtin.Type = @typeInfo(T);
+    if (typeInfo != .Struct) @compileError("Struct expected!");
+
+    for (typeInfo.Struct.decls) |decl|
+        if (std.mem.eql(u8, declName, decl.name)) return true;
+
+    return false;
+}
+
+const testing = std.testing;
+
+test containsDeclaration {
+    const T = struct {
+        pub const a: u8 = 1;
+        pub var b: u8 = 0;
+    };
+
+    try testing.expectEqual(true, containsDeclaration(T, "a"));
+    try testing.expectEqual(true, containsDeclaration(T, "b"));
+    try testing.expectEqual(false, containsDeclaration(T, "c"));
+}
