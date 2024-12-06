@@ -45,6 +45,13 @@ pub fn TreeMap(
             return if (root == newRoot) self else Map{ .root = newRoot };
         }
 
+        pub fn remove(self: Map, key: Key) Map {
+            _ = self;
+            _ = key;
+
+            @compileError("Not yet implemented");
+        }
+
         pub fn get(self: Map, key: Key) ?Value {
             var currentNode: ?*const Node = self.root;
 
